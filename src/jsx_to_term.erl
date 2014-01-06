@@ -121,9 +121,16 @@ format_key(Key, Config) ->
     end.
 
 
+post_decode(<<Y:4/binary, "-", M:2/binary, "-", D:2/binary, "T",
+              H:2/binary, ":", I:2/binary, ":", S:2/binary, "Z">>,
+            #config{post_decode=false}) ->
+    {{to_int(Y), to_int(M), to_int(D)},
+     {to_int(H), to_int(I), to_int(S)}};
 post_decode(Value, #config{post_decode=false}) -> Value;
 post_decode(Value, Config) -> (Config#config.post_decode)(Value).
 
+to_int(Bin) when is_binary(Bin) ->
+    list_to_integer(binary_to_list(Bin)).
 
 %% eunit tests
 
