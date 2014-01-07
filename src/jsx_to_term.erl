@@ -122,10 +122,18 @@ format_key(Key, Config) ->
 
 
 post_decode(<<Y:4/binary, "-", M:2/binary, "-", D:2/binary, "T",
-              H:2/binary, ":", I:2/binary, ":", S:2/binary, "Z">>,
-            #config{post_decode=false}) ->
-    {{to_int(Y), to_int(M), to_int(D)},
-     {to_int(H), to_int(I), to_int(S)}};
+              H:2/binary, ":", I:2/binary, ":", SZ/binary>> = DateTime,
+            #config{post_decode=false} = Config) ->
+    %% Discard precision *and* timezone as Erlang datetime does not support it
+    %% We're *always* expecting GMT "Z" datetime format
+    case re:run(SZ, <<"^([0-9]+)\\.?.*Z$">>, [{capture, all_but_first}]) of
+        {match, [{0, End}]} ->
+            <<S:End/binary, _/binary>> = SZ,
+            {{to_int(Y), to_int(M), to_int(D)},
+             {to_int(H), to_int(I), to_int(S)}};
+        nomatch ->
+            erlang:error(badarg, [DateTime, Config])
+    end;
 post_decode(Value, #config{post_decode=false}) -> Value;
 post_decode(Value, Config) -> (Config#config.post_decode)(Value).
 
